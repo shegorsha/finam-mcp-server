@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SMC Signals</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, sans-serif; background: #0f1923; color: #e0e0e0; padding: 12px; max-width: 600px; margin: 0 auto; }
+    h1 { font-size: 20px; text-align: center; margin: 8px 0 16px; color: #4CAF50; }
+    .ticker-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 16px; }
+    .ticker-btn { padding: 14px 8px; font-size: 15px; background: #1a2a3a; color: #e0e0e0; border: 1px solid #2a3a4a; border-radius: 8px; cursor: pointer; text-align: center; transition: 0.2s; }
+    .ticker-btn:hover { background: #2a3a4a; border-color: #4CAF50; }
+    .ticker-btn .name { font-size: 11px; color: #888; margin-top: 4px; }
+    .controls { display: flex; gap: 8px; margin-bottom: 16px; }
+    select, button { padding: 10px; border-radius: 8px; border: 1px solid #2a3a4a; background: #1a2a3a; color: #e0e0e0; font-size: 14px; }
+    .controls button { background: #4CAF50; color: #0f1923; font-weight: bold; border: none; flex: 1; }
+    .controls button:hover { background: #45a049; }
+    .controls select { flex: 1; }
+    #result { background: #1a2a3a; border-radius: 10px; padding: 16px; white-space: pre-wrap; min-height: 120px; line-height: 1.6; }
+    .loading { text-align: center; padding: 40px; color: #888; }
+    .error { color: #ff6b6b; }
+    .meta { color: #4a9; font-size: 12px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #2a3a4a; }
+    .settings-link { text-align: center; margin: 24px 0 8px; }
+    .settings-link a { color: #4a9; text-decoration: none; font-size: 14px; }
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 100; overflow-y: auto; }
+    .modal-content { background: #1a2a3a; margin: 20px auto; padding: 16px; border-radius: 10px; max-width: 500px; width: 90%; }
+    .modal-content h2 { color: #4CAF50; margin-bottom: 12px; font-size: 18px; }
+    .ticker-row { display: flex; gap: 6px; margin-bottom: 8px; }
+    .ticker-row input { flex: 1; padding: 8px; border-radius: 6px; border: 1px solid #2a3a4a; background: #0f1923; color: #e0e0e0; font-size: 13px; }
+    .ticker-row input.short { max-width: 60px; flex: 0 0 60px; }
+    .ticker-row .del-btn { background: #ff4444; color: white; border: none; border-radius: 6px; padding: 8px 12px; cursor: pointer; font-size: 16px; }
+    .add-btn { background: #2a4a2a; color: #4CAF50; border: 1px dashed #4CAF50; border-radius: 6px; padding: 10px; width: 100%; cursor: pointer; margin: 8px 0; }
+    .save-btn { background: #4CAF50; color: #0f1923; border: none; border-radius: 8px; padding: 12px; width: 100%; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 12px; }
+    .close-btn { background: #333; color: #aaa; border: none; border-radius: 8px; padding: 10px; width: 100%; cursor: pointer; margin-top: 8px; }
+    .slot-count { color: #888; font-size: 12px; text-align: right; margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <h1>SMC Signals</h1>
+  <div class="controls">
+    <select id="tf">
+      <option value="M15">M15</option>
+      <option value="H1" selected>H1</option>
+      <option value="H4">H4</option>
+      <option value="D1">D1</option>
+    </select>
+    <button onclick="refresh()">Update</button>
+  </div>
+  <div class="ticker-grid" id="tickerGrid"></div>
+  <div id="result"><div class="loading">Select instrument</div></div>
+  <div class="settings-link"><a href="#" onclick="openSettings(); return false;">Settings</a></div>
+  <div class="modal" id="settingsModal">
+    <div class="modal-content">
+      <h2>Tickers (max 10)</h2>
+      <div class="slot-count" id="slotCount"></div>
+      <div id="tickerEditor"></div>
+      <button class="add-btn" onclick="addRow()">+ Add slot</button>
+      <button class="save-btn" onclick="saveTickers()">Save</button>
+      <button class="close-btn" onclick="closeSettings()">Close</button>
+    </div>
+  </div>
+  <script>
+    let tickers = [];
+    let currentTicker = null;
+    async function loadTickers() {
+      try {
+        const res = await fetch('/api/tickers');
+        if (res.status !== 200) throw new Error('load error');
+        tickers = await res.json();
+        renderGrid();
+      } catch (e) {
+        document.getElementById('result').innerHTML = '<div class="error">' + e.message + '</div>';
+      }
+    }
+    function renderGrid() {
+      const grid = document.getElementById('tickerGrid');
+      grid.innerHTML = '';
+      tickers.forEach(function(t) {
+        const btn = document.createElement('div');
+        btn.className = 'ticker-btn';
+        btn.innerHTML = '<b>' + t.short + '</b><div class="name">' + (t.name || t.full) + '</div>';
+        btn.onclick = function() { getSignal(t.short); };
+        grid.appendChild(btn);
+      });
+    }
+    async function getSignal(short) {
+      currentTicker = short;
+      const tf = document.getElementById('tf').value;
+      const el = document.getElementById('result');
+      el.innerHTML = '<div class="loading">' + short + ' (' + tf + ')...</div>';
+      try {
+        const res = await fetch('/api/signal?ticker=' + short + '&tf=' + tf);
+        const data = await res.json();
+        if (data.error) { el.innerHTML = '<div class="error">' + data.error + '</div>'; return; }
+        let html = '<div class="meta">';
+        html += data.ticker + ' | ' + data.tf + ' | ' + data.bars + ' candles<br>';
+        html += 'Last: <b>' + data.last_price + '</b> (' + data.last_time + ')';
+        html += '</div>' + data.analysis;
+        el.innerHTML = html;
+      } catch (e) { el.innerHTML = '<div class="error">' + e.message + '</div>'; }
+    }
+    function refresh() { if (currentTicker) getSignal(currentTicker); }
+    function openSettings() { document.getElementById('settingsModal').style.display = 'block'; renderEditor(); }
+    function closeSettings() { document.getElementById('settingsModal').style.display = 'none'; }
+    function renderEditor() {
+      const c = document.getElementById('tickerEditor');
+      c.innerHTML = '';
+      tickers.forEach(function(t, i) {
+        const r = document.createElement('div');
+        r.className = 'ticker-row';
+        r.innerHTML = '<input class="short" value="' + t.short + '" onchange="tickers[' + i + '].short=this.value">' +
+          '<input value="' + t.full + '" onchange="tickers[' + i + '].full=this.value">' +
+          '<input value="' + (t.name || '') + '" onchange="tickers[' + i + '].name=this.value">' +
+          '<button class="del-btn" onclick="tickers.splice(' + i + ',1);renderEditor();">x</button>';
+        c.appendChild(r);
+      });
+      document.getElementById('slotCount').textContent = tickers.length + ' / 10';
+    }
+    function addRow() { if (tickers.length >= 10) { alert('max 10'); return; } tickers.push({short:'',full:'',name:''}); renderEditor(); }
+    async function saveTickers() {
+      const res = await fetch('/api/tickers', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({tickers:tickers}) });
+      const d = await res.json();
+      if (d.error) { alert(d.error); return; }
+      closeSettings(); loadTickers(); alert('OK: ' + d.count);
+    }
+    loadTickers();
+  </script>
+</body>
+</html>

@@ -1,0 +1,52 @@
+[
+  {
+    "short": "Si",
+    "full": "SiU6@RTSX",
+    "name": "Доллар-рубль"
+  },
+  {
+    "short": "MXI",
+    "full": "MXU6@RTSX",
+    "name": "Индекс МосБиржи (мини)"
+  },
+  {
+    "short": "RTS",
+    "full": "RTSI@MISX",
+    "name": "Индекс РТС"
+  },
+  {
+    "short": "BR",
+    "full": "BRV6@RTSX",
+    "name": "Нефть Brent"
+  },
+  {
+    "short": "GOLD",
+    "full": "GDU6@RTSX",
+    "name": "Золото"
+  },
+  {
+    "short": "SBER",
+    "full": "SBER@MISX",
+    "name": "Сбербанк"
+  },
+  {
+    "short": "GAZP",
+    "full": "GAZP@MISX",
+    "name": "Газпром"
+  },
+  {
+    "short": "LKOH",
+    "full": "LKOH@MISX",
+    "name": "Лукойл"
+  },
+  {
+    "short": "GMKN",
+    "full": "GMKN@MISX",
+    "name": "Норникель"
+  },
+  {
+    "short": "VTBR",
+    "full": "VTBR@MISX",
+    "name": "ВТБ"
+  }
+]

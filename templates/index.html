@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Finam Trading Assistant</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 40px; }
+    button { padding: 12px 24px; font-size: 16px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 6px; }
+    button:hover { background: #0056b3; }
+    button:disabled { background: #ccc; }
+    #result { margin-top: 20px; padding: 12px; border: 1px solid #ddd; border-radius: 6px; white-space: pre-wrap; }
+    .error { color: #d9534f; }
+  </style>
+</head>
+<body>
+  <h1>Торговый ассистент (Finam + YandexGPT)</h1>
+  <p>Нажмите кнопку, чтобы получить баланс и результат по портфелю:</p>
+  <button id="getBalanceBtn">Get Balance</button>
+  <div id="result"></div>
+
+  <script>
+    const btn = document.getElementById('getBalanceBtn');
+    const resultDiv = document.getElementById('result');
+
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      btn.textContent = 'Загрузка...';
+      resultDiv.textContent = '';
+
+      try {
+        const res = await fetch('/balance', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-API-Key': 'super_secret_key_123'  // <-- ключ подставляется здесь
+          }
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          resultDiv.textContent = 'Ошибка: ' + (data.detail || 'Неизвестная ошибка');
+          resultDiv.classList.add('error');
+        } else {
+          resultDiv.textContent = data.message || 'Нет данных';
+          resultDiv.classList.remove('error');
+        }
+      } catch (e) {
+        resultDiv.textContent = 'Ошибка соединения: ' + e.message;
+        resultDiv.classList.add('error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Get Balance';
+      }
+    });
+  </script>
+</body>
+</html>

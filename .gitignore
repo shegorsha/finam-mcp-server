@@ -1,0 +1,32 @@
+# Секреты и токены (НИКОГДА не коммитить!)
+.env
+secrets.json
+secrets.json.save
+secrets.json.local
+alerts.json
+
+# Системные файлы macOS
+.DS_Store
+
+# Python: байт-код и кэш
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Временные файлы и бэкапы
+*.save
+*.bak
+*~
+
+# Виртуальные окружения (если используешь)
+venv/
+.venv/
+env/
+
+# Логи и артефакты сборки (если появятся)
+*.log
+logs/
+build/
+dist/
